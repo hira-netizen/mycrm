@@ -805,7 +805,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
               Open your quiz HTML file in Netlify. Paste the tracking snippet just before the closing <code style="background:#f0f0f5;padding:1px 5px;border-radius:4px;">&lt;/body&gt;</code> tag.
             </div>
             <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">📍 Your quiz: <strong style="color:var(--navy);">trainings.digitallyempower.co.uk/audit</strong></div>
-            <button class="btn btn-rose" onclick="showSnippet('quiz')" style="width:100%;justify-content:center;">📋 Copy Quiz Snippet</button>
+            <a href="STEP1-quiz-tracker-snippet.html" download class="btn btn-rose" style="width:100%;justify-content:center;text-decoration:none;">⬇️ Download Quiz Snippet</a>
           </div>
 
           <!-- STEP 2: WORDPRESS -->
@@ -818,7 +818,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
               In WordPress: install the <strong>Code Snippets</strong> plugin → Add New → paste the PHP snippet → Activate. Done.
             </div>
             <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">📍 Your site: <strong style="color:var(--navy);">digitallyempower.co.uk</strong></div>
-            <button class="btn btn-dark" onclick="showSnippet('wp')" style="width:100%;justify-content:center;">📋 Copy WordPress Snippet</button>
+            <a href="STEP2-wordpress-tracker.php" download class="btn btn-dark" style="width:100%;justify-content:center;text-decoration:none;">⬇️ Download WP Snippet</a>
           </div>
 
           <!-- STEP 3: NETLIFY FUNCTION -->
@@ -831,7 +831,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
               Add the serverless function to your Netlify repo to log quiz completions server-side and optionally forward to GoHighLevel.
             </div>
             <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">📁 Save as: <strong style="color:var(--navy);">netlify/functions/track.js</strong></div>
-            <button class="btn btn-ghost" onclick="showSnippet('netlify')" style="width:100%;justify-content:center;border-color:var(--border);color:var(--text);">📋 Copy Netlify Function</button>
+            <a href="STEP3-netlify-function.js" download class="btn btn-ghost" style="width:100%;justify-content:center;text-decoration:none;border-color:var(--border);color:var(--text);">⬇️ Download Netlify Function</a>
           </div>
 
           <!-- STEP 4: TEST -->
@@ -953,7 +953,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
     <button class="btn btn-ghost" onclick="closeOverlay('o-view')">Close</button>
     <button class="btn btn-rose" onclick="markPosted()">✅ Mark Posted</button>
   </div>
-</div></div>
+</div>
 
 <script>
 // ═══════════════════════════════
@@ -1476,7 +1476,7 @@ function showCalWeek(n,el){
   document.querySelectorAll('.cwtab').forEach(t=>t.classList.remove('active'));
   if(el) el.classList.add('active');
   const body=document.getElementById('cal-body');
-  if(body){ body.dataset.week=n; renderCalendar(); }
+  if(body){ body.dataset.week=n; renderCalendar(); if(isMobile()) renderMobileCalendar(n); }
 }
 
 // ═══════════════════════════════
@@ -2360,27 +2360,12 @@ function renderMobileCalendar(week){
   }, 100);
 }
 
-// Override showCalWeek to also render mobile view
-const _origShowCalWeek = showCalWeek;
-function showCalWeek(n, el){
-  document.querySelectorAll('.cwtab').forEach(t=>t.classList.remove('active'));
-  if(el) el.classList.add('active');
-  const body = document.getElementById('cal-body');
-  if(body){ body.dataset.week=n; renderCalendar(); renderMobileCalendar(n); }
-}
 
-// Re-render mobile calendar on resize
-window.addEventListener('resize', ()=>{
-  const body = document.getElementById('cal-body');
-  if(body && isMobile()) renderMobileCalendar(parseInt(body.dataset.week||'1'));
-});
+window.addEventListener('resize', ()=>{ if(document.getElementById('page-calendar')?.classList.contains('active') && isMobile()){ const b=document.getElementById('cal-body'); if(b) renderMobileCalendar(parseInt(b.dataset.week||'1')); } });
 
 // ═══════════════════════════════
 // TRAFFIC TRACKER
 // ═══════════════════════════════
-const QUIZ_SNIPPET = "<!-- Digitally Empower \u00b7 Quiz Tracker -->\n<script>\n(function(){\n  var APP_URL = 'https://trainings.digitallyempower.co.uk'; // your quiz domain\n  var TRACKER_KEY = 'de-tracker';\n\n  // Generate or retrieve visitor ID\n  function getVID(){\n    var vid = localStorage.getItem('de-vid');\n    if(!vid){ vid = 'v-' + Date.now() + '-' + Math.random().toString(36).substr(2,9); localStorage.setItem('de-vid',vid); }\n    return vid;\n  }\n\n  // Send event to your app's localStorage (shared if same domain)\n  // AND post to a tiny endpoint you control via Netlify function\n  function track(event, data){\n    var payload = {\n      event: event,\n      vid: getVID(),\n      page: window.location.pathname,\n      referrer: document.referrer,\n      timestamp: new Date().toISOString(),\n      source: 'quiz',\n      data: data || {}\n    };\n\n    // Store locally for the app to read\n    try {\n      var existing = JSON.parse(localStorage.getItem(TRACKER_KEY) || '[]');\n      existing.unshift(payload);\n      if(existing.length > 500) existing = existing.slice(0,500);\n      localStorage.setItem(TRACKER_KEY, JSON.stringify(existing));\n    } catch(e){}\n\n    // Also send to your Netlify tracking function\n    try {\n      fetch('/.netlify/functions/track', {\n        method: 'POST',\n        headers: {'Content-Type':'application/json'},\n        body: JSON.stringify(payload),\n        keepalive: true\n      }).catch(function(){});\n    } catch(e){}\n  }\n\n  // Track page view immediately\n  track('pageview', { title: document.title });\n\n  // Track time on page\n  var startTime = Date.now();\n  window.addEventListener('beforeunload', function(){\n    track('timeonpage', { seconds: Math.round((Date.now()-startTime)/1000) });\n  });\n\n  // Auto-detect quiz form submission\n  // Works with most form libraries \u2014 watches for form submit + email field\n  function watchForms(){\n    document.addEventListener('submit', function(e){\n      var form = e.target;\n      var emailEl = form.querySelector('input[type=email], input[name=email], input[name=Email]');\n      var nameEl  = form.querySelector('input[name=name], input[name=Name], input[name=firstName], input[placeholder*=name i]');\n      if(emailEl){\n        track('quiz_complete', {\n          email: emailEl.value,\n          name:  nameEl ? nameEl.value : '',\n        });\n      }\n    }, true);\n\n    // Also watch for hidden input changes (Typeform/ScoreApp style)\n    var observer = new MutationObserver(function(){\n      var emailEl = document.querySelector('input[type=email]');\n      if(emailEl && emailEl.value && !emailEl.dataset.tracked){\n        emailEl.dataset.tracked = '1';\n        emailEl.addEventListener('blur', function(){\n          if(emailEl.value) track('email_captured', { email: emailEl.value });\n        });\n      }\n    });\n    observer.observe(document.body, { childList:true, subtree:true });\n  }\n\n  if(document.readyState === 'loading'){\n    document.addEventListener('DOMContentLoaded', watchForms);\n  } else { watchForms(); }\n\n  // Expose global tracker for manual calls\n  window.DETrack = track;\n})();\n</script>\n<!-- End Digitally Empower Tracker -->";
-const WP_SNIPPET = "<?php\n/**\n * Digitally Empower \u00b7 Website Tracker\n * Add this to your WordPress theme's functions.php\n * OR install \"Code Snippets\" plugin and paste there\n */\nfunction de_tracking_script() {\n    $current_page = get_permalink();\n    $post_title   = get_the_title();\n    ?>\n    <script>\n    (function(){\n      var TRACKER_KEY = 'de-wp-tracker';\n      function getVID(){\n        var vid = localStorage.getItem('de-vid');\n        if(!vid){ vid='v-'+Date.now()+'-'+Math.random().toString(36).substr(2,9); localStorage.setItem('de-vid',vid); }\n        return vid;\n      }\n      function track(event, data){\n        var payload = {\n          event: event,\n          vid: getVID(),\n          page: window.location.pathname,\n          pageTitle: '<?php echo esc_js($post_title); ?>',\n          referrer: document.referrer,\n          timestamp: new Date().toISOString(),\n          source: 'website',\n          data: data || {}\n        };\n        try {\n          var existing = JSON.parse(localStorage.getItem(TRACKER_KEY)||'[]');\n          existing.unshift(payload);\n          if(existing.length > 200) existing = existing.slice(0,200);\n          localStorage.setItem(TRACKER_KEY, JSON.stringify(existing));\n        } catch(e){}\n        // Optional: send to your own endpoint\n        // fetch('https://your-tracking-endpoint.com/track', {...})\n      }\n      track('pageview', { url: window.location.href });\n      \n      // Track contact form submissions (works with CF7, WPForms, Gravity Forms)\n      document.addEventListener('wpcf7mailsent', function(e){ track('contact_form', { formId: e.detail.contactFormId }); });\n      document.addEventListener('wpformsAjaxSubmitSuccess', function(){ track('contact_form', {}); });\n      \n      window.DETrack = track;\n    })();\n    </script>\n    <?php\n}\nadd_action('wp_footer', 'de_tracking_script');";
-const NETLIFY_SNIPPET = "// netlify/functions/track.js\n// Deploy this alongside your quiz on Netlify\n// It receives tracking events and stores them\n\nexports.handler = async function(event, context) {\n  // Allow CORS from your domains\n  const headers = {\n    'Access-Control-Allow-Origin': '*',\n    'Access-Control-Allow-Headers': 'Content-Type',\n    'Access-Control-Allow-Methods': 'POST, OPTIONS'\n  };\n\n  if(event.httpMethod === 'OPTIONS'){\n    return { statusCode: 200, headers, body: '' };\n  }\n\n  if(event.httpMethod !== 'POST'){\n    return { statusCode: 405, headers, body: 'Method not allowed' };\n  }\n\n  try {\n    const payload = JSON.parse(event.body);\n    \n    // Log to Netlify function logs (visible in your Netlify dashboard)\n    console.log('DE_TRACK:', JSON.stringify(payload));\n    \n    // You can extend this to:\n    // - Send to Google Sheets via Apps Script webhook\n    // - Send to GoHighLevel CRM via their API\n    // - Send email notification for quiz completions\n    \n    if(payload.event === 'quiz_complete' && payload.data && payload.data.email){\n      console.log('NEW_LEAD:', payload.data.email, payload.data.name);\n      // Add webhook call to your CRM here when ready\n    }\n\n    return {\n      statusCode: 200,\n      headers,\n      body: JSON.stringify({ ok: true })\n    };\n  } catch(e) {\n    return { statusCode: 400, headers, body: JSON.stringify({ error: e.message }) };\n  }\n};";
 
 function getTrafficData(){
   const quizRaw = localStorage.getItem('de-tracker');
@@ -2491,27 +2476,7 @@ function clearTrafficData(){
   renderTraffic();
 }
 
-function showSnippet(type){
-  const el = document.getElementById('snippet-display');
-  const title = document.getElementById('snippet-title');
-  const code  = document.getElementById('snippet-code');
-  const instr = document.getElementById('snippet-instructions');
-  if(type==='quiz'){
-    title.innerHTML = '📋 Quiz Tracking Snippet';
-    code.textContent = QUIZ_SNIPPET;
-    instr.innerHTML  = '📍 <strong>Where to paste:</strong> Open your quiz HTML file in Netlify. Find the closing &lt;/body&gt; tag. Paste this snippet just before it. Redeploy your site.';
-  } else if(type==='wp'){
-    title.innerHTML = '📋 WordPress Tracking Snippet';
-    code.textContent = WP_SNIPPET;
-    instr.innerHTML  = '📍 <strong>Where to paste:</strong> In WordPress admin → Install "Code Snippets" plugin → Add New → paste this code → set to run everywhere → Save & Activate.';
-  } else {
-    title.innerHTML = '📋 Netlify Function';
-    code.textContent = NETLIFY_SNIPPET;
-    instr.innerHTML  = '📍 <strong>Where to add:</strong> In your quiz repo, create folder <code>netlify/functions/</code> and save this as <code>track.js</code>. Redeploy your Netlify site.';
-  }
-  el.style.display = 'block';
-  el.scrollIntoView({behavior:'smooth'});
-}
+function showSnippet(type){ alert('Check your downloaded files:\nSTEP1-quiz-tracker-snippet.html\nSTEP2-wordpress-tracker.php\nSTEP3-netlify-function.js'); }
 
 function copySnippet(){
   const code = document.getElementById('snippet-code').textContent;
@@ -2525,6 +2490,10 @@ function copySnippet(){
 
 setup();
 renderAll();
+syncSheet();
+// Re-sync every 5 minutes
+setInterval(syncSheet, 300000);
+enderAll();
 syncSheet();
 // Re-sync every 5 minutes
 setInterval(syncSheet, 300000);
