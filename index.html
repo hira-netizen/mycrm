@@ -691,11 +691,12 @@ tr:hover td{background:var(--cream);}
         <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--navy);font-weight:600;">LinkedIn Prospect Tracker</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px;">Paste a profile URL → auto-detects platform → syncs to Google Sheet</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <div id="hq-sheet-badge" onclick="toggleHQSheetConfig()" style="display:flex;align-items:center;gap:6px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .2s;">
           <div id="hq-sheet-dot" style="width:7px;height:7px;border-radius:50%;background:var(--border2);"></div>
           <span id="hq-sheet-label">Connect Google Sheets</span>
         </div>
+        <button onclick="syncAllToSheet()" class="btn btn-ghost" style="font-size:11px;" id="sync-all-btn">📤 Sync All to Sheet</button>
         <a href="https://linkdeintracker.netlify.app" target="_blank" class="btn btn-ghost" style="font-size:11px;">Open Full App ↗</a>
       </div>
     </div>
@@ -711,6 +712,13 @@ tr:hover td{background:var(--cream);}
         <button onclick="saveHQWebhook()" class="btn btn-rose">Save & Connect</button>
       </div>
       <div id="hq-webhook-msg" style="font-size:12px;margin-top:8px;"></div>
+      <div id="sync-all-progress" style="display:none;margin-top:12px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;" id="sync-all-title">Syncing prospects to Sheet...</div>
+        <div style="background:var(--border);border-radius:10px;height:6px;overflow:hidden;margin-bottom:6px;">
+          <div id="sync-all-bar" style="height:100%;background:var(--gold);border-radius:10px;width:0%;transition:width .3s;"></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);" id="sync-all-status">0 of 0 synced...</div>
+      </div>
     </div>
 
     <!-- ADD PROSPECT INLINE -->
@@ -1845,7 +1853,84 @@ function updateHQSheetBadge(connected){
   }
 }
 
-async function syncProspectToSheet(p){
+async function syncAllToSheet(){
+  if(!hqWebhook){
+    toggleHQSheetConfig();
+    var msg = document.getElementById('hq-webhook-msg');
+    msg.style.color='var(--amber)';
+    msg.textContent='⚠ Please connect your Google Sheet first, then click Sync All again.';
+    return;
+  }
+  if(!S.tracker || !S.tracker.length){
+    alert('No prospects in your tracker yet!');
+    return;
+  }
+
+  // Show progress
+  var btn = document.getElementById('sync-all-btn');
+  var progress = document.getElementById('sync-all-progress');
+  var bar = document.getElementById('sync-all-bar');
+  var status = document.getElementById('sync-all-status');
+  var title = document.getElementById('sync-all-title');
+
+  // Open config panel to show progress
+  document.getElementById('hq-sheet-config').style.display = 'block';
+  progress.style.display = 'block';
+  btn.textContent = '⟳ Syncing...';
+  btn.disabled = true;
+
+  var total = S.tracker.length;
+  var done = 0;
+  var failed = 0;
+
+  title.textContent = 'Syncing ' + total + ' prospects to your Google Sheet...';
+
+  for(var i = 0; i < S.tracker.length; i++){
+    var p = S.tracker[i];
+    status.textContent = 'Syncing ' + p.name + '... (' + (i+1) + ' of ' + total + ')';
+    bar.style.width = Math.round(((i+1)/total)*100) + '%';
+
+    try {
+      await fetch(hqWebhook, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: p.name,
+          source: p.source || 'LinkedIn',
+          status: p.status || 'Lead Added',
+          dateEngaged: p.dateEngaged || '',
+          followUp1: p.followUp1 || '',
+          finalFollowUp: p.followUp2 || '',
+          outcome: p.outcome || '',
+          url: p.url || '',
+          niche: p.niche || '',
+          notes: p.notes || ''
+        })
+      });
+      done++;
+    } catch(e) {
+      failed++;
+    }
+
+    // Small delay to avoid rate limiting
+    await new Promise(function(r){ setTimeout(r, 400); });
+  }
+
+  bar.style.width = '100%';
+  bar.style.background = failed > 0 ? 'var(--amber)' : 'var(--green)';
+
+  if(failed === 0){
+    title.textContent = '✅ All ' + done + ' prospects synced to your Google Sheet!';
+    status.textContent = 'Note: duplicates will be skipped automatically by the sheet.';
+  } else {
+    title.textContent = '⚠ ' + done + ' synced, ' + failed + ' failed';
+    status.textContent = 'Check your Sheet connection and try again for failed ones.';
+  }
+
+  btn.textContent = '📤 Sync All to Sheet';
+  btn.disabled = false;
+}
   if(!hqWebhook) return;
   try {
     await fetch(hqWebhook, {
