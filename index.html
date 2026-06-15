@@ -686,12 +686,31 @@ tr:hover td{background:var(--cream);}
 
   <!-- LINKEDIN TRACKER EMBEDDED -->
   <div id="page-tracker" class="page">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
       <div>
         <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--navy);font-weight:600;">LinkedIn Prospect Tracker</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Paste a profile URL → auto-detects platform → tracks your pipeline</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Paste a profile URL → auto-detects platform → syncs to Google Sheet</div>
       </div>
-      <a href="https://linkdeintracker.netlify.app" target="_blank" class="btn btn-ghost" style="font-size:11px;">Open Full App ↗</a>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div id="hq-sheet-badge" onclick="toggleHQSheetConfig()" style="display:flex;align-items:center;gap:6px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .2s;">
+          <div id="hq-sheet-dot" style="width:7px;height:7px;border-radius:50%;background:var(--border2);"></div>
+          <span id="hq-sheet-label">Connect Google Sheets</span>
+        </div>
+        <a href="https://linkdeintracker.netlify.app" target="_blank" class="btn btn-ghost" style="font-size:11px;">Open Full App ↗</a>
+      </div>
+    </div>
+
+    <!-- SHEET CONFIG PANEL -->
+    <div id="hq-sheet-config" style="display:none;background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">🔗 Connect Your Google Sheet</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Paste the same Web App URL you used in your LinkedIn Tracker. Any prospect added here will sync to your sheet automatically.</div>
+      <div style="display:flex;gap:10px;">
+        <input id="hq-webhook-input" placeholder="https://script.google.com/macros/s/YOUR_ID/exec"
+          style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;color:var(--text);"
+          onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"/>
+        <button onclick="saveHQWebhook()" class="btn btn-rose">Save & Connect</button>
+      </div>
+      <div id="hq-webhook-msg" style="font-size:12px;margin-top:8px;"></div>
     </div>
 
     <!-- ADD PROSPECT INLINE -->
@@ -699,9 +718,9 @@ tr:hover td{background:var(--cream);}
       <div class="card-head"><span class="card-title">➕ Add <span>Prospect</span></span><div id="tracker-src-badge" style="font-size:12px;color:var(--muted);">🔗 Auto-detect</div></div>
       <div class="card-body">
         <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-          <input id="tr-url" class="fg" style="flex:2;min-width:200px;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;" placeholder="Paste LinkedIn / Instagram / Facebook URL..." oninput="onTrackerUrl(this.value)" onkeydown="if(event.key==='Enter')addTrackerProspect()"/>
-          <input id="tr-name" class="fg" style="flex:1;min-width:140px;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;" placeholder="Name (auto-filled)"/>
-          <input id="tr-niche" class="fg" style="flex:1;min-width:120px;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;" placeholder="Niche / expertise"/>
+          <input id="tr-url" style="flex:2;min-width:200px;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;color:var(--text);" placeholder="Paste LinkedIn / Instagram / Facebook URL..." oninput="onTrackerUrl(this.value)" onkeydown="if(event.key==='Enter')addTrackerProspect()" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"/>
+          <input id="tr-name" style="flex:1;min-width:140px;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;color:var(--text);" placeholder="Name (auto-filled)" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"/>
+          <input id="tr-niche" style="flex:1;min-width:120px;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;color:var(--text);" placeholder="Niche / expertise" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"/>
           <button class="btn btn-rose" onclick="addTrackerProspect()">+ Add</button>
         </div>
         <div id="tracker-msg" style="font-size:12px;display:none;"></div>
@@ -1774,6 +1793,81 @@ function renderGraphics(){
   }).join('');
 }
 
+// ═══════════ HQ SHEET WEBHOOK ═══════════
+var HQ_WK = 'de-hq-webhook';
+var hqWebhook = localStorage.getItem(HQ_WK) || '';
+
+function initHQWebhook(){
+  if(hqWebhook){
+    document.getElementById('hq-webhook-input').value = hqWebhook;
+    updateHQSheetBadge(true);
+  }
+}
+
+function toggleHQSheetConfig(){
+  var el = document.getElementById('hq-sheet-config');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveHQWebhook(){
+  var val = document.getElementById('hq-webhook-input').value.trim();
+  var msg = document.getElementById('hq-webhook-msg');
+  if(!val.includes('script.google.com')){
+    msg.style.color='var(--amber)';
+    msg.textContent='That URL looks wrong — copy the Web App URL from Google Apps Script.';
+    return;
+  }
+  hqWebhook = val;
+  localStorage.setItem(HQ_WK, val);
+  updateHQSheetBadge(true);
+  msg.style.color='var(--green)';
+  msg.textContent='✓ Connected! New prospects will sync to your Google Sheet automatically.';
+  setTimeout(function(){ document.getElementById('hq-sheet-config').style.display='none'; }, 2500);
+}
+
+function updateHQSheetBadge(connected){
+  var badge = document.getElementById('hq-sheet-badge');
+  var dot = document.getElementById('hq-sheet-dot');
+  var label = document.getElementById('hq-sheet-label');
+  if(!badge) return;
+  if(connected){
+    dot.style.background = 'var(--green)';
+    dot.style.boxShadow = '0 0 6px var(--green)';
+    label.textContent = 'Sheets Connected ✓';
+    badge.style.borderColor = 'var(--green)';
+    badge.style.color = 'var(--green)';
+  } else {
+    dot.style.background = '';
+    dot.style.boxShadow = '';
+    label.textContent = 'Connect Google Sheets';
+    badge.style.borderColor = '';
+    badge.style.color = '';
+  }
+}
+
+async function syncProspectToSheet(p){
+  if(!hqWebhook) return;
+  try {
+    await fetch(hqWebhook, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: p.name,
+        source: p.source,
+        status: p.status,
+        dateEngaged: p.dateEngaged,
+        followUp1: p.followUp1 || '',
+        finalFollowUp: p.followUp2 || '',
+        outcome: p.outcome || '',
+        url: p.url || '',
+        niche: p.niche || '',
+        notes: p.notes || ''
+      })
+    });
+  } catch(e) { console.log('Sheet sync error:', e); }
+}
+
 // ═══════════ EMBEDDED TRACKER ═══════════
 var trackerFilter = 'All';
 if(!S.tracker) S.tracker = [];
@@ -1818,7 +1912,6 @@ function addTrackerProspect(){
   var urlEl = document.getElementById('tr-url');
   var nameEl = document.getElementById('tr-name');
   var nicheEl = document.getElementById('tr-niche');
-  var msgEl = document.getElementById('tracker-msg');
   var url = urlEl.value.trim();
   var name = nameEl.value.trim() || extractTrackerName(url);
   if(!url && !name){ showTrackerMsg('Please paste a URL or enter a name','err'); return; }
@@ -1838,15 +1931,26 @@ function addTrackerProspect(){
   urlEl.value=''; nameEl.value=''; nicheEl.value='';
   nameEl.dataset.typed='';
   document.getElementById('tracker-src-badge').textContent='🔗 Auto-detect';
-  showTrackerMsg('✓ '+name+' added to tracker','ok');
+
+  // Sync to Google Sheet
+  if(hqWebhook){
+    showTrackerMsg('⟳ Syncing to Google Sheet...','info');
+    syncProspectToSheet(p).then(function(){
+      showTrackerMsg('✓ '+name+' added and synced to your Google Sheet ✅','ok');
+    });
+  } else {
+    showTrackerMsg('✓ '+name+' added — connect Google Sheets to auto-sync','ok');
+  }
+
   renderTracker(); renderTodayLeads();
 }
 
-function showTrackerMsg(text, type){
+function showTrackerMsg(text, type, ms){
   var el = document.getElementById('tracker-msg');
   el.textContent=text; el.style.display='block';
-  el.style.color = type==='err'?'var(--amber)':'var(--green)';
-  setTimeout(function(){ el.style.display='none'; }, 3000);
+  el.style.color = type==='err'?'var(--amber)':type==='info'?'var(--blue)':'var(--green)';
+  if(ms === undefined) ms = type==='info' ? 0 : 3000;
+  if(ms) setTimeout(function(){ el.style.display='none'; }, ms);
 }
 
 function updateTrackerField(id, field, val){
@@ -1978,6 +2082,7 @@ renderGraphics();
 renderTracker();
 renderTodayLeads();
 renderUploadedDocs();
+initHQWebhook();
 syncSheet();
 setInterval(syncSheet, 300000);
 window.addEventListener('resize', function(){ renderCalendar(); });
