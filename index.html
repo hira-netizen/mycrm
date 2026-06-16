@@ -2149,6 +2149,7 @@ async function syncAllToSheet(){
   } catch(e) { console.log('Sheet sync error:', e); }
 }
 
+async function syncProspectToSheet(p){
 // ═══════════ EMBEDDED TRACKER ═══════════
 var trackerFilter = 'All';
 if(!S.tracker) S.tracker = [];
