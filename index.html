@@ -2127,6 +2127,8 @@ async function syncAllToSheet(){
   btn.textContent = '📤 Sync All to Sheet';
   btn.disabled = false;
 }
+
+async function syncProspectToSheet(p){
   if(!hqWebhook) return;
   try {
     await fetch(hqWebhook, {
@@ -2368,6 +2370,7 @@ initHQWebhook();
 syncSheet();
 setInterval(syncSheet, 300000);
 window.addEventListener('resize', function(){ renderCalendar(); });
+}
 </script>
 </body>
 </html>
