@@ -2010,6 +2010,47 @@ function initHQWebhook(){
   if(hqWebhook){
     document.getElementById('hq-webhook-input').value = hqWebhook;
     updateHQSheetBadge(true);
+    loadLeadsFromSheet();
+  }
+}
+
+async function loadLeadsFromSheet(){
+  if(!hqWebhook) return;
+  try{
+    var res = await fetch(hqWebhook);
+    var data = await res.json();
+    if(!data.success || !data.leads) return;
+
+    var merged = S.tracker ? S.tracker.slice() : [];
+    var existingNames = merged.map(function(p){ return p.name.toLowerCase().trim(); });
+
+    data.leads.forEach(function(sheetLead){
+      var nameKey = (sheetLead.name||'').toLowerCase().trim();
+      if(!nameKey) return;
+      if(existingNames.indexOf(nameKey) === -1){
+        merged.push({
+          id: 'sheet-'+nameKey.replace(/\s+/g,'-')+'-'+Date.now()+Math.random(),
+          url: sheetLead.url || '',
+          name: sheetLead.name,
+          niche: '',
+          source: sheetLead.source || 'LinkedIn',
+          status: sheetLead.status || 'Lead Added',
+          dateEngaged: sheetLead.dateEngaged || '',
+          followUp1: sheetLead.followUp1 || '',
+          followUp2: sheetLead.followUp2 || '',
+          outcome: sheetLead.outcome || '',
+          notes: ''
+        });
+        existingNames.push(nameKey);
+      }
+    });
+
+    S.tracker = merged;
+    save();
+    renderTracker();
+    renderTodayLeads();
+  } catch(e){
+    console.log('Could not load leads from sheet:', e);
   }
 }
 
