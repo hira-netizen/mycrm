@@ -1378,7 +1378,12 @@ function getAllLeads(){
       service:l.service||l['service interest']||'', status:l.status||'New',
       followup:l['follow up']||l['follow-up date']||l.followup||'', budget:l.budget||'', notes:l.notes||'', _src:'sheet' };
   });
-  return sheet.concat(manual);
+  var tracker = (S.tracker||[]).map(function(p){
+    return { id:'tr-'+p.id, name:p.name, platform:p.source||'LinkedIn',
+      service:p.niche||'', status: p.outcome ? p.outcome : (p.status||'New'),
+      followup: p.followUp2||p.followUp1||'', budget:'', notes:p.notes||'', _src:'tracker' };
+  });
+  return sheet.concat(manual).concat(tracker);
 }
 
 function renderFUAlerts(){
