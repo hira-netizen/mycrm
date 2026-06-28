@@ -2004,7 +2004,8 @@ function renderGraphics(){
 
 // ═══════════ HQ SHEET WEBHOOK ═══════════
 var HQ_WK = 'de-hq-webhook';
-var hqWebhook = localStorage.getItem(HQ_WK) || '';
+var hqWebhook = localStorage.getItem(HQ_WK) || 'https://script.google.com/macros/s/AKfycbw-pDGip0FOScCtJ5CjNoMvDpKW-1S7QOKt7r3SDCJGUupDDZRoK45ZYZo80q5FHdhy/exec';
+if(!localStorage.getItem(HQ_WK)) localStorage.setItem(HQ_WK, hqWebhook);
 
 function initHQWebhook(){
   if(hqWebhook){
